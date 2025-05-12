@@ -16,9 +16,12 @@ st.sidebar.title("🔍 Ustawienia wyszukiwania")
 # Kontrolki
 title = st.sidebar.text_input("Tytuł filmu (angielski):", "Inception")
 depth = st.sidebar.toggle("Rozszerzenie grafu", value=True)
+limit = st.sidebar.number_input(
+    "Set limit", value=5, placeholder="Type a number..."
+)
 run = st.sidebar.button("Generuj graf")
-film_a = st.sidebar.text_input("Film A (angielski):", "Inception")
-film_b = st.sidebar.text_input("Film B (angielski):", "Titanic")
+film_a = st.sidebar.text_input("Film A (angielski):", "Cars 2")
+film_b = st.sidebar.text_input("Film B (angielski):", "Premium Rush")
 path_btn = st.sidebar.button("Pokaż ścieżkę")
 
 def build_and_store_graph():
@@ -28,11 +31,10 @@ def build_and_store_graph():
     if depth == 1:
         persons = {r["director"]["value"] for r in core} | {r["actor"]["value"] for r in core}
         for p in persons:
-            expansion[p] = get_other_movies(p)
+            expansion[p] = get_other_movies(p, limit=limit)
     G = build_graph(core, expansion if depth else None)
     st.session_state.G = G
     st.session_state.html = show_graph(G)
-    print(st.session_state.G)
 
 def find_film_uri(G, title):
     """
@@ -57,7 +59,7 @@ if "G" in st.session_state:
     G = st.session_state.G
     html = st.session_state.html
 
-    col1, col2 = st.columns([3, 1])
+    col1, col2 = st.columns([8, 1])
     with col2:
         st.metric("Węzły", len(G.nodes))
         st.metric("Krawędzi", len(G.edges))
