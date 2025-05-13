@@ -2,7 +2,6 @@
 Konwersja grafu NetworkX → interaktywne HTML (PyVis).
 """
 
-from typing import Union
 import networkx as nx
 from pyvis.network import Network
 
@@ -21,8 +20,8 @@ def show_graph(G: nx.MultiDiGraph,
         net.add_node(node,
                      label=label,
                      title=node,
-                     color=color_map.get(node_type),
-                     shape="ellipse" if node_type=="Film" else "dot")
+                     color=color_map.get(node_type, "#cccccc"),
+                     shape="ellipse" if node_type == "Film" else "dot")
 
     for src, dst, edata in G.edges(data=True):
         net.add_edge(src, dst, label=edata.get("relation", ""))
