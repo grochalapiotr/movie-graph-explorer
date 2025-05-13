@@ -17,11 +17,14 @@ def _run_query(query: str) -> List[Dict]:
 
 def get_movie_core(title_en: str) -> List[Dict]:
     query = f"""
-    SELECT ?film ?director ?actor
-    WHERE {{
-      ?film rdfs:label "{title_en}"@en ;
+    SELECT ?film ?director ?actor WHERE {{
+      ?film rdfs:label ?lbl ;
             dbo:director ?director ;
-            dbo:starring ?actor .
+            dbo:starring  ?actor .
+      FILTER (
+        lang(?lbl) = 'en' &&
+        STRSTARTS( LCASE(str(?lbl)), LCASE("{title_en}") )
+      )
     }}
     LIMIT 50
     """
