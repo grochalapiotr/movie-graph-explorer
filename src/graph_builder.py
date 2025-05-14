@@ -8,7 +8,7 @@ import networkx as nx
 
 def build_graph(core_results: List[Dict],
                 expansion_results: Dict[str, List[Dict]] = None) -> nx.MultiDiGraph:
-    G = nx.MultiDiGraph()
+    G = nx.DiGraph()
 
     # rdzeń filmu
     for row in core_results:

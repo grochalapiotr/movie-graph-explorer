@@ -4,7 +4,7 @@ Aplikacja Streamlit uruchamiająca cały pipeline.
 
 import streamlit as st
 import networkx as nx
-from fetcher import get_movie_core, get_other_movies
+from fetcher import get_movie_suggestions, get_movie_core, get_other_movies
 # from fetcher_google import get_movie_core, get_other_movies
 from graph_builder import build_graph
 from visualizer import show_graph
@@ -13,18 +13,33 @@ from visualizer import show_graph
 st.set_page_config(page_title="Movie-Graph Explorer", layout="wide")
 st.sidebar.title("🔍 Ustawienia wyszukiwania")
 
-# Kontrolki
-title = st.sidebar.text_input("Tytuł filmu (angielski):", "Inception")
+# 1) Pole tekstowe do wpisania fragmentu tytułu
+input_title = st.sidebar.text_input("Tytuł filmu (angielski):", "Toy Story")
+
+# 2) Pobieramy listę sugestii (label i URI)
+suggestions = []
+if input_title:
+    suggestions = get_movie_suggestions(input_title, limit=10)  # zwraca listę dict: {"film": uri, "label": lbl}
+
+if not suggestions:
+    st.sidebar.write("Brak propozycji dla tego fragmentu.")
+else:
+    # 3) Pokazujemy dropdown z sugestiami
+    labels = [s["label"] for s in suggestions]
+    chosen_label = st.sidebar.selectbox("Wybierz film:", labels)
+    # 4) Zaemapujemy wybrany label na URI
+    uri_map = {s["label"]: s["film"] for s in suggestions}
+    chosen_uri = uri_map[chosen_label]
+
+# 5) Reszta parametrów
 depth = st.sidebar.toggle("Rozszerzenie grafu", value=True)
-limit = st.sidebar.number_input(
-    "Set limit", value=5, placeholder="Type a number..."
-)
+limit = st.sidebar.number_input("Limit innych filmów na osobę:", value=5, min_value=1)
 run = st.sidebar.button("Generuj graf")
 
 
-def build_and_store_graph():
+def build_and_store_graph(uri: str):
     """Buduje graf i zapisuje go wraz z wygenerowanym HTML w session_state."""
-    core = get_movie_core(title)
+    core = get_movie_core(uri)
     expansion = {}
     if depth:
         persons = {r["director"]["value"] for r in core} | {r["actor"]["value"] for r in core}
@@ -51,8 +66,11 @@ def find_film_uri(G, title):
 
 # Jeśli przycisk został wciśnięty, (re)budujemy graf
 if run:
-    with st.spinner("Pobieram dane i buduję graf…"):
-        build_and_store_graph()
+    if suggestions:
+        with st.spinner("Pobieram dane i buduję graf…"):
+            build_and_store_graph(chosen_uri)
+    else:
+        st.error("Nie wybrano poprawnego filmu z listy propozycji.")
 
 # Gdy graf jest dostępny - pokazujemy dropdowny i wykres
 if "G" in st.session_state:
