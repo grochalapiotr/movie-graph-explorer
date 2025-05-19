@@ -1,3 +1,4 @@
+# app.py
 """
 Aplikacja Streamlit uruchamiająca cały pipeline.
 """
@@ -16,20 +17,18 @@ st.sidebar.title("🔍 Ustawienia wyszukiwania")
 # 1) Pole tekstowe do wpisania fragmentu tytułu
 input_title = st.sidebar.text_input("Tytuł filmu (angielski):", "Toy Story")
 
-# 2) Pobieramy listę sugestii (label i URI)
+# 2) Pobranie propozycji
 suggestions = []
 if input_title:
-    suggestions = get_movie_suggestions(input_title, limit=10)  # zwraca listę dict: {"film": uri, "label": lbl}
-
-if not suggestions:
-    st.sidebar.write("Brak propozycji dla tego fragmentu.")
-else:
-    # 3) Pokazujemy dropdown z sugestiami
+    suggestions = get_movie_suggestions(input_title)
     labels = [s["label"] for s in suggestions]
     chosen_label = st.sidebar.selectbox("Wybierz film:", labels)
-    # 4) Zaemapujemy wybrany label na URI
-    uri_map = {s["label"]: s["film"] for s in suggestions}
-    chosen_uri = uri_map[chosen_label]
+else:
+    chosen_label = None
+
+# 3) Mapa etykieta→URI
+uri_map = {s["label"]: s["film"] for s in suggestions}
+chosen_uri = uri_map.get(chosen_label)
 
 # 5) Reszta parametrów
 depth = st.sidebar.toggle("Rozszerzenie grafu", value=True)
@@ -58,15 +57,14 @@ def find_film_uri(G, title):
     title = title.strip().lower()
     for node, data in G.nodes(data=True):
         if data.get("type") == "Film":
-            label = node.rsplit("/", 1)[-1].replace("_", " ").lower()
-            if label == title:
+            if node.rsplit("/", 1)[-1].replace("_", " ").lower() == title:
                 return node
     return None
 
 
 # Jeśli przycisk został wciśnięty, (re)budujemy graf
 if run:
-    if suggestions:
+    if chosen_uri:
         with st.spinner("Pobieram dane i buduję graf…"):
             build_and_store_graph(chosen_uri)
     else:
@@ -104,7 +102,7 @@ if "G" in st.session_state:
         else:
             path = None
 
-            # Rysujemy graf
+            # Rysujemy graf (domyślnie bez podświetlenia)
             html = show_graph(G)
             col1, col2 = st.columns([8, 1])
             with col2:
@@ -123,6 +121,8 @@ if "G" in st.session_state:
                                     "<div style='text-align: center; font-size: 24px; line-height: 0.5;'>&darr;</div>",
                                     unsafe_allow_html=True
                                 )
+                        # Podświetlenie ścieżki na grafie
+                        html = show_graph(G, path)
                     except nx.NetworkXNoPath:
                         st.error("Brak połączenia między wybranymi filmami.")
             with col1:
